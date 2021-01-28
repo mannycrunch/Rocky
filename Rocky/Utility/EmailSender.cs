@@ -1,6 +1,7 @@
 ﻿using Mailjet.Client;
 using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -11,6 +12,12 @@ namespace Rocky.Utility
 {
     public class EmailSender : IEmailSender
     {
+        private readonly IConfiguration _configuration;
+        public MailJetSettings _mailJetSettings { get; set; }
+        public EmailSender(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
         public Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
             return Execute(email, subject, htmlMessage);
@@ -18,7 +25,9 @@ namespace Rocky.Utility
 
         public async Task Execute(string email, string subject, string body)
         {
-            MailjetClient client = new MailjetClient("5e536c329eb2db680affbab9a06b2503", "29105d53414cae332f9df93194959c90")
+            _mailJetSettings = _configuration.GetSection("MailJet").Get<MailJetSettings>();
+
+            MailjetClient client = new MailjetClient(_mailJetSettings.ApiKey, _mailJetSettings.SecretKey)
             {
                 //Version = ApiVersion.V3_1,
             };
@@ -26,36 +35,22 @@ namespace Rocky.Utility
             {
                 Resource = Send.Resource,
             }
-             .Property(Send.Messages, new JArray {
+            .Property(Send.Messages, new JArray {
                  new JObject {
-                      {
-                           "From",
-                           new JObject {
-                                {"Email", "manuel.lopez.jr@gmail.com"},
-                                {"Name", "Manny"}
-                           }
-                      }, {
-                           "To",
-                           new JArray {
-                                new JObject {
-                                     {
-                                          "Email",
-                                          email
-                                     }, {
-                                          "Name",
-                                          "DotNetMastery"
-                                     }
-                                }
-                           }
-                      }, {
-                           "Subject",
-                           subject
-                      }, {
-                           "HTMLPart",
-                           body
-                      }
+                     {"From", new JObject {
+                         {"Email", "manuellopezjr@protonmail.com"},
+                         {"Name", "Manny"}
+                     }}, 
+                     {"To", new JArray {
+                         new JObject {
+                             {"Email", email},
+                             {"Name", "DotNetMastery"}
+                         }
+                     }},
+                     {"Subject", subject},
+                     {"HTMLPart", body}
                  }
-             });
+            });
             //MailjetResponse response = await client.PostAsync(request);
             await client.PostAsync(request);
         }
